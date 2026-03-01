@@ -1,0 +1,22 @@
+# The SPQR-Tree algorithm implementation.
+# Copyright 2026 imacat.  All rights reserved.
+# Authors:
+#   imacat@mail.imacat.idv.tw (imacat), 2026/3/1
+
+*.pyc
+__pycache__
+build
+dist
+*.egg-info
+.pytest_cache
+venv
+
+.DS_Store
+.idea
+.claude
+
+.scannerwork
+sonar-project.properties
+
+excludes
+test_temp.py
