@@ -24,7 +24,7 @@ DFS from vertex 1.  Edge insertion order is specified in each test.
 import unittest
 from collections.abc import Hashable
 
-from spqrtree._graph import Edge, MultiGraph
+from spqrtree import Edge, MultiGraph
 from spqrtree._palm_tree import PalmTree, build_palm_tree, phi_key
 
 

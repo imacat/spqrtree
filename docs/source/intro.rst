@@ -133,12 +133,11 @@ Using a MultiGraph
 ~~~~~~~~~~~~~~~~~~
 
 For more control, build a
-:class:`~spqrtree._graph.MultiGraph` directly:
+:class:`~spqrtree.MultiGraph` directly:
 
 .. code-block:: python
 
-   from spqrtree._graph import MultiGraph
-   from spqrtree import SPQRTree
+   from spqrtree import MultiGraph, SPQRTree
 
    g = MultiGraph()
    g.add_edge(0, 1)

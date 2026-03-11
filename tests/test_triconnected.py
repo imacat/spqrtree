@@ -25,9 +25,10 @@ edge appearance count.
 import unittest
 from collections.abc import Hashable
 
-from spqrtree._graph import Edge, MultiGraph
-from spqrtree._triconnected import (
+from spqrtree import (
     ComponentType,
+    Edge,
+    MultiGraph,
     TriconnectedComponent,
     find_triconnected_components,
 )

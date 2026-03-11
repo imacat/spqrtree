@@ -20,7 +20,7 @@
 import unittest
 from collections.abc import Hashable
 
-from spqrtree._graph import Edge, MultiGraph
+from spqrtree import Edge, MultiGraph
 
 
 class TestEdge(unittest.TestCase):

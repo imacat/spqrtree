@@ -26,8 +26,13 @@ import unittest
 from collections import deque
 from collections.abc import Hashable
 
-from spqrtree._graph import Edge, MultiGraph
-from spqrtree._spqr import NodeType, SPQRNode, build_spqr_tree
+from spqrtree import (
+    Edge,
+    MultiGraph,
+    NodeType,
+    SPQRNode,
+    build_spqr_tree,
+)
 
 
 def _make_k3() -> MultiGraph:
