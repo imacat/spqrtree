@@ -418,7 +418,11 @@ class _PathSearcher:
         """Set of virtual edge IDs."""
 
         # Build palm tree and sort adjacency lists.
-        start: Hashable = next(iter(g.vertices))
+        # Use the first remaining edge's endpoint as start vertex
+        # for deterministic DFS ordering.  Edge IDs are sequential
+        # integers, so g.edges[0] is always the lowest-ID edge,
+        # regardless of Python hash seed.
+        start: Hashable = g.edges[0].u
         pt: PalmTree = build_palm_tree(g, start)
         sort_adjacency_lists(g, pt)
         pt = build_palm_tree(g, start)

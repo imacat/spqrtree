@@ -21,6 +21,9 @@
 Tests cover: triangle K3 (S-node), K4 (R-node), C4 (S-node),
 two parallel edges (Q-node), and three parallel edges (P-node).
 """
+import os
+import subprocess
+import sys
 import time
 import unittest
 from collections import deque
@@ -2800,6 +2803,44 @@ class TestSPQRWikimediaSpqr(unittest.TestCase):
         )
         self.assertEqual(n, 1)
 
+    def test_s_node_vertices(self) -> None:
+        """Test that the S-node has vertices {g, h, l, m}."""
+        s_nodes: list[SPQRNode] = [
+            nd for nd in self.all_nodes
+            if nd.type == NodeType.S
+        ]
+        self.assertEqual(len(s_nodes), 1)
+        self.assertEqual(
+            set(s_nodes[0].skeleton.vertices),
+            {'g', 'h', 'l', 'm'},
+        )
+
+    def test_p_node_vertices(self) -> None:
+        """Test that the P-node has vertices {l, m}."""
+        p_nodes: list[SPQRNode] = [
+            nd for nd in self.all_nodes
+            if nd.type == NodeType.P
+        ]
+        self.assertEqual(len(p_nodes), 1)
+        self.assertEqual(
+            set(p_nodes[0].skeleton.vertices),
+            {'l', 'm'},
+        )
+
+    def test_r_node_vertex_sets(self) -> None:
+        """Test exact vertex sets of R-nodes."""
+        r_verts: list[frozenset[Hashable]] = [
+            frozenset(nd.skeleton.vertices)
+            for nd in self.all_nodes
+            if nd.type == NodeType.R
+        ]
+        expected: set[frozenset[Hashable]] = {
+            frozenset({'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}),
+            frozenset({'h', 'i', 'j', 'k', 'm', 'n'}),
+            frozenset({'l', 'm', 'o', 'p'}),
+        }
+        self.assertEqual(set(r_verts), expected)
+
     def test_no_adjacent_s_nodes(self) -> None:
         """Test that no S-node is adjacent to another S-node."""
         _assert_no_ss_pp(self, self.root, NodeType.S)
@@ -2891,3 +2932,77 @@ class TestBuildSpqrTreeBiconnectivity(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             build_spqr_tree(g)
         self.assertIn("cut vertex", str(ctx.exception))
+
+
+# Script used by TestSPQRTreeDeterminism to run SPQR-tree
+# construction in a subprocess with a specific PYTHONHASHSEED.
+_SUBPROCESS_SCRIPT: str = """
+import json, sys
+from collections import deque
+sys.path.insert(0, "src")
+from spqrtree import MultiGraph, NodeType, SPQRNode, build_spqr_tree
+
+g = MultiGraph()
+edges = [
+    ('a', 'b'), ('a', 'c'), ('a', 'g'),
+    ('b', 'd'), ('b', 'h'), ('c', 'd'),
+    ('c', 'e'), ('d', 'f'), ('e', 'f'),
+    ('e', 'g'), ('f', 'h'), ('h', 'i'),
+    ('h', 'j'), ('i', 'j'), ('i', 'n'),
+    ('j', 'k'), ('k', 'm'), ('k', 'n'),
+    ('m', 'n'), ('l', 'm'), ('l', 'o'),
+    ('l', 'p'), ('m', 'o'), ('m', 'p'),
+    ('o', 'p'), ('g', 'l'),
+]
+for u, v in edges:
+    g.add_edge(u, v)
+root = build_spqr_tree(g)
+nodes = []
+queue = deque([root])
+while queue:
+    nd = queue.popleft()
+    verts = sorted(nd.skeleton.vertices)
+    nodes.append({"type": nd.type.value, "vertices": verts})
+    for ch in nd.children:
+        queue.append(ch)
+nodes.sort(key=lambda x: (x["type"], x["vertices"]))
+print(json.dumps(nodes))
+"""
+
+
+class TestSPQRTreeDeterminism(unittest.TestCase):
+    """Test that SPQR-tree construction is deterministic.
+
+    Runs SPQR-tree construction of the Wikimedia SPQR example
+    graph in subprocesses with different PYTHONHASHSEED values
+    and verifies that all runs produce identical results.
+    """
+
+    def test_deterministic_across_hash_seeds(self) -> None:
+        """Test consistent results with 20 different hash seeds."""
+        results: list[str] = []
+        env: dict[str, str] = os.environ.copy()
+        cwd: str = os.path.join(
+            os.path.dirname(__file__), os.pardir
+        )
+        for seed in range(20):
+            env["PYTHONHASHSEED"] = str(seed)
+            proc: subprocess.CompletedProcess[str] = \
+                subprocess.run(
+                    [sys.executable, "-c", _SUBPROCESS_SCRIPT],
+                    capture_output=True, text=True,
+                    env=env, cwd=cwd,
+                )
+            self.assertEqual(
+                proc.returncode, 0,
+                f"seed={seed} failed:\n{proc.stderr}"
+            )
+            results.append(proc.stdout.strip())
+        # All runs must produce the same result.
+        for i, r in enumerate(results):
+            self.assertEqual(
+                r, results[0],
+                f"seed={i} differs from seed=0:\n"
+                f"  seed=0: {results[0]}\n"
+                f"  seed={i}: {r}"
+            )

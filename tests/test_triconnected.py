@@ -22,6 +22,9 @@ Tests cover: triangle K3, 4-cycle C4, complete graph K4, two parallel
 edges, three parallel edges, real-edge count invariant, and virtual
 edge appearance count.
 """
+import os
+import subprocess
+import sys
 import unittest
 from collections.abc import Hashable
 
@@ -2741,6 +2744,49 @@ class TestTriconnectedWikimediaSpqr(unittest.TestCase):
         )
         self.assertEqual(n, 1)
 
+    def test_polygon_vertices(self) -> None:
+        """Test that the POLYGON has vertices {g, h, l, m}."""
+        polygons: list[TriconnectedComponent] = [
+            c for c in self.comps
+            if c.type == ComponentType.POLYGON
+        ]
+        self.assertEqual(len(polygons), 1)
+        verts: set[Hashable] = set()
+        for e in polygons[0].edges:
+            verts.add(e.u)
+            verts.add(e.v)
+        self.assertEqual(verts, {'g', 'h', 'l', 'm'})
+
+    def test_bond_vertices(self) -> None:
+        """Test that the BOND has vertices {l, m}."""
+        bonds: list[TriconnectedComponent] = [
+            c for c in self.comps
+            if c.type == ComponentType.BOND
+        ]
+        self.assertEqual(len(bonds), 1)
+        verts: set[Hashable] = set()
+        for e in bonds[0].edges:
+            verts.add(e.u)
+            verts.add(e.v)
+        self.assertEqual(verts, {'l', 'm'})
+
+    def test_triconnected_vertex_sets(self) -> None:
+        """Test exact vertex sets of TRICONNECTED components."""
+        tri_verts: list[frozenset[Hashable]] = []
+        for c in self.comps:
+            if c.type == ComponentType.TRICONNECTED:
+                verts: set[Hashable] = set()
+                for e in c.edges:
+                    verts.add(e.u)
+                    verts.add(e.v)
+                tri_verts.append(frozenset(verts))
+        expected: set[frozenset[Hashable]] = {
+            frozenset({'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}),
+            frozenset({'h', 'i', 'j', 'k', 'm', 'n'}),
+            frozenset({'l', 'm', 'o', 'p'}),
+        }
+        self.assertEqual(set(tri_verts), expected)
+
     def test_all_invariants(self) -> None:
         """Test all decomposition invariants."""
         _check_all_invariants(self, self.g, self.comps)
@@ -2871,3 +2917,73 @@ class TestBiconnectivityCheck(unittest.TestCase):
         comps: list[TriconnectedComponent] = \
             find_triconnected_components(g)
         self.assertEqual(len(comps), 1)
+
+
+# Script used by TestTriconnectedDeterminism to run decomposition
+# in a subprocess with a specific PYTHONHASHSEED.
+_SUBPROCESS_SCRIPT: str = """
+import json, sys
+sys.path.insert(0, "src")
+from spqrtree import (
+    ComponentType, MultiGraph, find_triconnected_components,
+)
+
+g = MultiGraph()
+edges = [
+    ('a', 'b'), ('a', 'c'), ('a', 'g'),
+    ('b', 'd'), ('b', 'h'), ('c', 'd'),
+    ('c', 'e'), ('d', 'f'), ('e', 'f'),
+    ('e', 'g'), ('f', 'h'), ('h', 'i'),
+    ('h', 'j'), ('i', 'j'), ('i', 'n'),
+    ('j', 'k'), ('k', 'm'), ('k', 'n'),
+    ('m', 'n'), ('l', 'm'), ('l', 'o'),
+    ('l', 'p'), ('m', 'o'), ('m', 'p'),
+    ('o', 'p'), ('g', 'l'),
+]
+for u, v in edges:
+    g.add_edge(u, v)
+comps = find_triconnected_components(g)
+result = []
+for c in comps:
+    verts = sorted({ep for e in c.edges for ep in (e.u, e.v)})
+    result.append({"type": c.type.value, "vertices": verts})
+result.sort(key=lambda x: (x["type"], x["vertices"]))
+print(json.dumps(result))
+"""
+
+
+class TestTriconnectedDeterminism(unittest.TestCase):
+    """Test that triconnected decomposition is deterministic.
+
+    Runs decomposition of the Wikimedia SPQR example graph in
+    subprocesses with different PYTHONHASHSEED values and verifies
+    that all runs produce identical results.
+    """
+
+    def test_deterministic_across_hash_seeds(self) -> None:
+        """Test consistent results with 20 different hash seeds."""
+        results: list[str] = []
+        env: dict[str, str] = os.environ.copy()
+        for seed in range(20):
+            env["PYTHONHASHSEED"] = str(seed)
+            proc: subprocess.CompletedProcess[str] = \
+                subprocess.run(
+                    [sys.executable, "-c", _SUBPROCESS_SCRIPT],
+                    capture_output=True, text=True, env=env,
+                    cwd=os.path.join(
+                        os.path.dirname(__file__), os.pardir
+                    ),
+                )
+            self.assertEqual(
+                proc.returncode, 0,
+                f"seed={seed} failed:\n{proc.stderr}"
+            )
+            results.append(proc.stdout.strip())
+        # All runs must produce the same result.
+        for i, r in enumerate(results):
+            self.assertEqual(
+                r, results[0],
+                f"seed={i} differs from seed=0:\n"
+                f"  seed=0: {results[0]}\n"
+                f"  seed={i}: {r}"
+            )
