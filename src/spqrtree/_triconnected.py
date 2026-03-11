@@ -92,6 +92,41 @@ class TriconnectedComponent:
     """All edges in this component (real and virtual)."""
 
 
+def _check_biconnected(graph: MultiGraph) -> None:
+    """Check that a graph is biconnected (connected with no cut vertex).
+
+    Uses a single DFS pass to verify connectivity and detect cut
+    vertices via Tarjan's algorithm.  A non-root vertex v is a cut
+    vertex if it has a child w such that lowpt1[w] >= dfs_num[v].
+    The DFS root is a cut vertex if it has two or more children.
+
+    :param graph: The multigraph to check.
+    :raises ValueError: If the graph is not connected or has a cut
+        vertex.
+    """
+    start: Hashable = next(iter(graph.vertices))
+    pt: PalmTree = build_palm_tree(graph, start)
+
+    # Check connectivity: DFS must visit all vertices.
+    if len(pt.dfs_num) < graph.num_vertices():
+        raise ValueError("graph is not connected")
+
+    # Check for cut vertices.
+    for v in graph.vertices:
+        if pt.parent[v] is None:
+            # Root: cut vertex if it has 2+ children.
+            if len(pt.children[v]) >= 2:
+                raise ValueError("graph has a cut vertex")
+        else:
+            # Non-root: cut vertex if any child w has
+            # lowpt1[w] >= dfs_num[v].
+            v_num: int = pt.dfs_num[v]
+            for w in pt.children[v]:
+                if pt.lowpt1[w] >= v_num:
+                    raise ValueError(
+                        "graph has a cut vertex")
+
+
 def find_triconnected_components(
     graph: MultiGraph,
 ) -> list[TriconnectedComponent]:
@@ -108,9 +143,13 @@ def find_triconnected_components(
 
     :param graph: A biconnected multigraph.
     :return: A list of TriconnectedComponent objects.
+    :raises ValueError: If the graph is not connected or has a
+        cut vertex.
     """
     if graph.num_vertices() == 0 or graph.num_edges() == 0:
         return []
+
+    _check_biconnected(graph)
 
     # Work on a copy to avoid modifying the caller's graph.
     g: MultiGraph = graph.copy()

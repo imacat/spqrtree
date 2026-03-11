@@ -2851,3 +2851,38 @@ class TestSPQRRpstFig1a(unittest.TestCase):
     def test_no_adjacent_p_nodes(self) -> None:
         """Test that no P-node is adjacent to another P-node."""
         _assert_no_ss_pp(self, self.root, NodeType.P)
+
+
+class TestBuildSpqrTreeBiconnectivity(unittest.TestCase):
+    """Tests that build_spqr_tree rejects non-biconnected graphs."""
+
+    def test_cut_vertex_raises(self) -> None:
+        """Test that a graph with a cut vertex raises ValueError."""
+        g: MultiGraph = MultiGraph()
+        g.add_edge(1, 2)
+        g.add_edge(2, 3)
+        g.add_edge(1, 3)
+        g.add_edge(3, 4)
+        g.add_edge(4, 5)
+        g.add_edge(3, 5)
+        with self.assertRaises(ValueError) as ctx:
+            build_spqr_tree(g)
+        self.assertIn("cut vertex", str(ctx.exception))
+
+    def test_disconnected_raises(self) -> None:
+        """Test that a disconnected graph raises ValueError."""
+        g: MultiGraph = MultiGraph()
+        g.add_edge(1, 2)
+        g.add_edge(3, 4)
+        with self.assertRaises(ValueError) as ctx:
+            build_spqr_tree(g)
+        self.assertIn("not connected", str(ctx.exception))
+
+    def test_path_raises(self) -> None:
+        """Test that a path graph raises ValueError."""
+        g: MultiGraph = MultiGraph()
+        g.add_edge(1, 2)
+        g.add_edge(2, 3)
+        with self.assertRaises(ValueError) as ctx:
+            build_spqr_tree(g)
+        self.assertIn("cut vertex", str(ctx.exception))

@@ -2785,3 +2785,88 @@ class TestTriconnectedRpstFig1a(unittest.TestCase):
     def test_all_invariants(self) -> None:
         """Test all decomposition invariants."""
         _check_all_invariants(self, self.g, self.comps)
+
+
+def _make_cut_vertex_graph() -> MultiGraph:
+    """Build a graph with a cut vertex.
+
+    Graph: 1-2-3 triangle connected to 3-4-5 triangle via
+    shared vertex 3 (the cut vertex).
+
+    :return: A MultiGraph with a cut vertex at vertex 3.
+    """
+    g: MultiGraph = MultiGraph()
+    g.add_edge(1, 2)
+    g.add_edge(2, 3)
+    g.add_edge(1, 3)
+    g.add_edge(3, 4)
+    g.add_edge(4, 5)
+    g.add_edge(3, 5)
+    return g
+
+
+def _make_disconnected_graph() -> MultiGraph:
+    """Build a disconnected graph with two components.
+
+    Component 1: edge 1-2.
+    Component 2: edge 3-4.
+
+    :return: A disconnected MultiGraph.
+    """
+    g: MultiGraph = MultiGraph()
+    g.add_edge(1, 2)
+    g.add_edge(3, 4)
+    return g
+
+
+def _make_path_graph() -> MultiGraph:
+    """Build a path graph 1-2-3 (not biconnected).
+
+    Vertex 2 is a cut vertex (removing it disconnects 1 and 3).
+
+    :return: A MultiGraph representing a path.
+    """
+    g: MultiGraph = MultiGraph()
+    g.add_edge(1, 2)
+    g.add_edge(2, 3)
+    return g
+
+
+class TestBiconnectivityCheck(unittest.TestCase):
+    """Tests that non-biconnected graphs raise ValueError."""
+
+    def test_cut_vertex_raises(self) -> None:
+        """Test that a graph with a cut vertex raises ValueError."""
+        g: MultiGraph = _make_cut_vertex_graph()
+        with self.assertRaises(ValueError) as ctx:
+            find_triconnected_components(g)
+        self.assertIn("cut vertex", str(ctx.exception))
+
+    def test_disconnected_raises(self) -> None:
+        """Test that a disconnected graph raises ValueError."""
+        g: MultiGraph = _make_disconnected_graph()
+        with self.assertRaises(ValueError) as ctx:
+            find_triconnected_components(g)
+        self.assertIn("not connected", str(ctx.exception))
+
+    def test_path_raises(self) -> None:
+        """Test that a path graph (has cut vertex) raises ValueError."""
+        g: MultiGraph = _make_path_graph()
+        with self.assertRaises(ValueError) as ctx:
+            find_triconnected_components(g)
+        self.assertIn("cut vertex", str(ctx.exception))
+
+    def test_single_vertex_no_edges(self) -> None:
+        """Test that a single vertex with no edges returns empty."""
+        g: MultiGraph = MultiGraph()
+        g.add_vertex(1)
+        comps: list[TriconnectedComponent] = \
+            find_triconnected_components(g)
+        self.assertEqual(comps, [])
+
+    def test_biconnected_graph_ok(self) -> None:
+        """Test that a biconnected graph does not raise."""
+        g: MultiGraph = _make_k3()
+        comps: list[TriconnectedComponent] = \
+            find_triconnected_components(g)
+        self.assertEqual(len(comps), 1)
