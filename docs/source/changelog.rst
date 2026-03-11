@@ -2,6 +2,16 @@ Change Log
 ==========
 
 
+Version 0.1.2
+-------------
+
+Released 2026/3/11
+
+- Fix non-deterministic SPQR decomposition caused by Python hash
+  seed randomization.  ``PathSearcher`` now uses a deterministic
+  DFS start vertex instead of picking from a ``set``.
+
+
 Version 0.1.1
 -------------
 

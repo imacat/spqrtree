@@ -43,7 +43,7 @@ from spqrtree._triconnected import (
     find_triconnected_components,
 )
 
-VERSION: str = "0.1.1"
+VERSION: str = "0.1.2"
 """The package version."""
 __all__: list[str] = [
     "SPQRTree", "SPQRNode", "NodeType",
