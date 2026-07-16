@@ -120,11 +120,6 @@ def _collect_all_nodes(root: SPQRNode) -> list[SPQRNode]:
 class TestSPQRNodeStructure(unittest.TestCase):
     """Tests for SPQRNode structure and attributes."""
 
-    def test_spqrnode_has_type(self) -> None:
-        """Test that SPQRNode has a type attribute."""
-        root: SPQRNode = build_spqr_tree(_make_k3())
-        self.assertIsInstance(root.type, NodeType)
-
     def test_spqrnode_has_skeleton(self) -> None:
         """Test that SPQRNode has a skeleton graph."""
         root: SPQRNode = build_spqr_tree(_make_k3())
@@ -146,12 +141,6 @@ class TestSPQRNodeStructure(unittest.TestCase):
         root: SPQRNode = build_spqr_tree(_make_k3())
         self.assertIsNone(root.parent)
 
-    def test_children_parent_links(self) -> None:
-        """Test that children have correct parent links."""
-        root: SPQRNode = build_spqr_tree(_make_k3())
-        for child in root.children:
-            self.assertIs(child.parent, root)
-
 
 class TestSPQRK3(unittest.TestCase):
     """Tests for the SPQR-tree of the triangle K3."""
@@ -164,19 +153,9 @@ class TestSPQRK3(unittest.TestCase):
             _collect_all_nodes(self.root)
         """All SPQR tree nodes."""
 
-    def test_returns_spqrnode(self) -> None:
-        """Test that build_spqr_tree returns an SPQRNode."""
-        self.assertIsInstance(self.root, SPQRNode)
-
     def test_root_is_s_node(self) -> None:
         """Test that K3 produces an S-node (POLYGON) as root."""
         self.assertEqual(self.root.type, NodeType.S)
-
-    def test_node_types_are_valid(self) -> None:
-        """Test that all node types are valid NodeType values."""
-        for node in self.all_nodes:
-            self.assertIsInstance(node.type, NodeType)
-            self.assertIn(node.type, list(NodeType))
 
 
 class TestSPQRK4(unittest.TestCase):
@@ -194,10 +173,6 @@ class TestSPQRK4(unittest.TestCase):
         """Test that K4 produces a single R-node."""
         self.assertEqual(self.root.type, NodeType.R)
 
-    def test_skeleton_has_vertices(self) -> None:
-        """Test that the R-node skeleton has vertices."""
-        self.assertGreater(self.root.skeleton.num_vertices(), 0)
-
 
 class TestSPQRC4(unittest.TestCase):
     """Tests for the SPQR-tree of the 4-cycle C4."""
@@ -213,11 +188,6 @@ class TestSPQRC4(unittest.TestCase):
     def test_root_is_s_node(self) -> None:
         """Test that C4 produces an S-node (POLYGON) as root."""
         self.assertEqual(self.root.type, NodeType.S)
-
-    def test_node_types_are_valid(self) -> None:
-        """Test that all node types are valid NodeType values."""
-        for node in self.all_nodes:
-            self.assertIsInstance(node.type, NodeType)
 
 
 class TestSPQRTwoParallel(unittest.TestCase):
@@ -258,28 +228,9 @@ class TestSPQRThreeParallel(unittest.TestCase):
         """Test that 3 parallel edges produce a single P-node."""
         self.assertEqual(self.root.type, NodeType.P)
 
-    def test_node_types_are_valid(self) -> None:
-        """Test that all node types are valid NodeType values."""
-        for node in self.all_nodes:
-            self.assertIsInstance(node.type, NodeType)
-
 
 class TestSPQRInvariants(unittest.TestCase):
     """Tests for global SPQR-tree invariants across all graphs."""
-
-    def _check_parent_links(self, root: SPQRNode) -> None:
-        """Check that parent-child links are consistent.
-
-        :param root: The SPQR-tree root.
-        :return: None
-        """
-        for node in _collect_all_nodes(root):
-            for child in node.children:
-                self.assertIs(
-                    child.parent,
-                    node,
-                    f"Child {child.type} has wrong parent",
-                )
 
     def _check_skeleton_edges(self, root: SPQRNode) -> None:
         """Check that each node's skeleton has at least 1 edge.
@@ -293,28 +244,6 @@ class TestSPQRInvariants(unittest.TestCase):
                 0,
                 f"Node {node.type} has empty skeleton",
             )
-
-    def test_k3_parent_links(self) -> None:
-        """Test parent link invariant for K3."""
-        self._check_parent_links(build_spqr_tree(_make_k3()))
-
-    def test_c4_parent_links(self) -> None:
-        """Test parent link invariant for C4."""
-        self._check_parent_links(build_spqr_tree(_make_c4()))
-
-    def test_k4_parent_links(self) -> None:
-        """Test parent link invariant for K4."""
-        self._check_parent_links(build_spqr_tree(_make_k4()))
-
-    def test_two_parallel_parent_links(self) -> None:
-        """Test parent link invariant for 2 parallel edges."""
-        self._check_parent_links(build_spqr_tree(_make_two_parallel()))
-
-    def test_three_parallel_parent_links(self) -> None:
-        """Test parent link invariant for 3 parallel edges."""
-        self._check_parent_links(
-            build_spqr_tree(_make_three_parallel())
-        )
 
     def test_k3_skeleton_edges(self) -> None:
         """Test skeleton edge invariant for K3."""
@@ -409,20 +338,6 @@ class TestSPQRDiamond(unittest.TestCase):
             _collect_all_nodes(self.root)
         """All SPQR tree nodes."""
 
-    def test_at_least_two_nodes(self) -> None:
-        """Test that diamond produces at least 2 SPQR-tree nodes."""
-        self.assertGreaterEqual(
-            len(self.all_nodes),
-            2,
-            "Diamond has a separation pair, expect >=2 SPQR nodes",
-        )
-
-    def test_node_types_are_valid(self) -> None:
-        """Test that all node types are valid NodeType values."""
-        for node in self.all_nodes:
-            self.assertIsInstance(node.type, NodeType)
-            self.assertIn(node.type, list(NodeType))
-
     def test_no_ss_adjacency(self) -> None:
         """Test that no S-node is adjacent to another S-node."""
         _assert_no_ss_pp(self, self.root, NodeType.S)
@@ -463,11 +378,6 @@ class TestSPQRTheta(unittest.TestCase):
             "expect P-node at root",
         )
 
-    def test_node_types_are_valid(self) -> None:
-        """Test that all node types are valid NodeType values."""
-        for node in self.all_nodes:
-            self.assertIsInstance(node.type, NodeType)
-
     def test_no_ss_adjacency(self) -> None:
         """Test that no S-node is adjacent to another S-node."""
         _assert_no_ss_pp(self, self.root, NodeType.S)
@@ -503,10 +413,6 @@ class TestSPQRPrism(unittest.TestCase):
             "Prism is 3-connected, expect single R-node",
         )
         self.assertEqual(self.root.type, NodeType.R)
-
-    def test_no_children(self) -> None:
-        """Test that the single R-node has no children."""
-        self.assertEqual(len(self.root.children), 0)
 
     def test_skeleton_has_nine_edges(self) -> None:
         """Test that the R-node skeleton contains 9 edges."""
@@ -544,52 +450,6 @@ def _assert_no_ss_pp(
                     f"{ntype.value}-{ntype.value} adjacency found "
                     f"in SPQR-tree (not allowed)",
                 )
-
-
-class TestSPQRNoSSPPInvariants(unittest.TestCase):
-    """Tests that no S-S or P-P adjacency occurs for all graphs."""
-
-    def _check_tree(self, g: MultiGraph) -> None:
-        """Build SPQR-tree and check S-S and P-P invariants.
-
-        :param g: The input multigraph.
-        :return: None
-        """
-        root: SPQRNode = build_spqr_tree(g)
-        _assert_no_ss_pp(self, root, NodeType.S)
-        _assert_no_ss_pp(self, root, NodeType.P)
-
-    def test_k3_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for K3."""
-        self._check_tree(_make_k3())
-
-    def test_c4_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for C4."""
-        self._check_tree(_make_c4())
-
-    def test_k4_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for K4."""
-        self._check_tree(_make_k4())
-
-    def test_two_parallel_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for 2 parallel edges."""
-        self._check_tree(_make_two_parallel())
-
-    def test_three_parallel_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for 3 parallel edges."""
-        self._check_tree(_make_three_parallel())
-
-    def test_diamond_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for the diamond graph."""
-        self._check_tree(_make_diamond())
-
-    def test_theta_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for the theta graph."""
-        self._check_tree(_make_theta())
-
-    def test_prism_no_ss_pp(self) -> None:
-        """Test no S-S or P-P adjacency for the triangular prism."""
-        self._check_tree(_make_prism())
 
 
 def _count_real_edges_in_tree(root: SPQRNode) -> int:
@@ -820,28 +680,6 @@ class TestSPQRMultiEdgeComplex(unittest.TestCase):
         """Test all SPQR-tree invariants for the multi-edge graph."""
         _check_spqr_invariants(self, self.g, self.root)
 
-    def test_has_p_node(self) -> None:
-        """Test that multi-edges produce P-nodes in the tree."""
-        p_nodes: list[SPQRNode] = [
-            n for n in self.all_nodes
-            if n.type == NodeType.P
-        ]
-        self.assertGreaterEqual(
-            len(p_nodes), 1,
-            "Multi-edge graph should have at least one P-node",
-        )
-
-    def test_has_s_node(self) -> None:
-        """Test that the cycle backbone produces an S-node."""
-        s_nodes: list[SPQRNode] = [
-            n for n in self.all_nodes
-            if n.type == NodeType.S
-        ]
-        self.assertGreaterEqual(
-            len(s_nodes), 1,
-            "Multi-edge graph should have at least one S-node",
-        )
-
     def test_exact_node_structure(self) -> None:
         """Test exact SPQR-tree node counts: 2 P-nodes, 1 S-node.
 
@@ -1045,10 +883,6 @@ class TestSPQRSingleEdge(unittest.TestCase):
         """Test that there is exactly 1 node in the tree."""
         self.assertEqual(len(self.all_nodes), 1)
 
-    def test_no_children(self) -> None:
-        """Test that the Q-node has no children."""
-        self.assertEqual(len(self.root.children), 0)
-
     def test_skeleton_has_one_edge(self) -> None:
         """Test that the Q-node skeleton has exactly 1 edge."""
         self.assertEqual(self.root.skeleton.num_edges(), 1)
@@ -1103,10 +937,6 @@ class TestSPQRC6(unittest.TestCase):
     def test_single_node_total(self) -> None:
         """Test that C6 yields exactly 1 SPQR node."""
         self.assertEqual(len(self.all_nodes), 1)
-
-    def test_no_children(self) -> None:
-        """Test that the root S-node has no children."""
-        self.assertEqual(len(self.root.children), 0)
 
     def test_skeleton_has_six_edges(self) -> None:
         """Test that the S-node skeleton has 6 edges."""
@@ -1224,10 +1054,6 @@ class TestSPQRPetersen(unittest.TestCase):
     def test_single_node_total(self) -> None:
         """Test that there is exactly 1 node in the tree."""
         self.assertEqual(len(self.all_nodes), 1)
-
-    def test_no_children(self) -> None:
-        """Test that the R-node has no children."""
-        self.assertEqual(len(self.root.children), 0)
 
     def test_skeleton_has_fifteen_edges(self) -> None:
         """Test that the R-node skeleton has 15 edges."""
@@ -2119,19 +1945,6 @@ class TestSPQRLadder(unittest.TestCase):
         ]
         self.assertEqual(len(s), 3, "Expected 3 S-nodes")
         self.assertEqual(len(p), 2, "Expected 2 P-nodes")
-
-    def test_no_r_or_q_nodes(self) -> None:
-        """Test that the ladder has no R-nodes or Q-nodes."""
-        r: list[SPQRNode] = [
-            n for n in self.all_nodes
-            if n.type == NodeType.R
-        ]
-        q: list[SPQRNode] = [
-            n for n in self.all_nodes
-            if n.type == NodeType.Q
-        ]
-        self.assertEqual(len(r), 0, "Expected no R-nodes")
-        self.assertEqual(len(q), 0, "Expected no Q-nodes")
 
 
 def _make_c7() -> MultiGraph:

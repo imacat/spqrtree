@@ -59,11 +59,6 @@ class TestMultiGraphVertices(unittest.TestCase):
         self.g: MultiGraph = MultiGraph()
         """The graph under test."""
 
-    def test_add_vertex(self) -> None:
-        """Test adding a single vertex."""
-        self.g.add_vertex(1)
-        self.assertIn(1, self.g.vertices)
-
     def test_add_multiple_vertices(self) -> None:
         """Test adding multiple vertices."""
         for v in [1, 2, 3, 4]:
@@ -110,11 +105,6 @@ class TestMultiGraphEdges(unittest.TestCase):
         self.assertEqual(e.u, 1)
         self.assertEqual(e.v, 2)
 
-    def test_add_edge_returns_edge(self) -> None:
-        """Test that add_edge returns an Edge object."""
-        e: Edge = self.g.add_edge(1, 2)
-        self.assertIsInstance(e, Edge)
-
     def test_add_parallel_edges(self) -> None:
         """Test adding parallel edges between the same pair."""
         e1: Edge = self.g.add_edge(1, 2)
@@ -150,14 +140,6 @@ class TestMultiGraphEdges(unittest.TestCase):
         """Test adding a virtual edge."""
         e: Edge = self.g.add_edge(1, 2, virtual=True)
         self.assertTrue(e.virtual)
-
-    def test_edges_property(self) -> None:
-        """Test that edges property returns all edges."""
-        e1: Edge = self.g.add_edge(1, 2)
-        e2: Edge = self.g.add_edge(2, 3)
-        ids: set[int] = {e.id for e in self.g.edges}
-        self.assertIn(e1.id, ids)
-        self.assertIn(e2.id, ids)
 
 
 class TestMultiGraphNeighbors(unittest.TestCase):

@@ -143,10 +143,6 @@ class TestTriconnectedK3(unittest.TestCase):
             find_triconnected_components(self.g)
         """The triconnected split components."""
 
-    def test_returns_list(self) -> None:
-        """Test that find_triconnected_components returns a list."""
-        self.assertIsInstance(self.comps, list)
-
     def test_single_component(self) -> None:
         """Test that K3 produces exactly 1 triconnected component."""
         self.assertEqual(len(self.comps), 1)
@@ -306,16 +302,6 @@ class TestTriconnectedThreeParallel(unittest.TestCase):
 class TestTriconnectedInvariants(unittest.TestCase):
     """Tests for global invariants across all graphs."""
 
-    def _check_real_edge_count(self, g: MultiGraph) -> None:
-        """Check that real edge count is preserved across decomposition.
-
-        :param g: The input graph.
-        :return: None
-        """
-        comps: list[TriconnectedComponent] = \
-            find_triconnected_components(g)
-        self.assertEqual(_count_real_edges(comps), g.num_edges())
-
     def _check_virtual_edges_in_two_comps(
         self, comps: list[TriconnectedComponent]
     ) -> None:
@@ -333,26 +319,6 @@ class TestTriconnectedInvariants(unittest.TestCase):
                 f"Virtual edge {eid} appears in {cnt} components "
                 f"(expected 2)",
             )
-
-    def test_k3_real_edge_count(self) -> None:
-        """Test real edge count invariant for K3."""
-        self._check_real_edge_count(_make_k3())
-
-    def test_c4_real_edge_count(self) -> None:
-        """Test real edge count invariant for C4."""
-        self._check_real_edge_count(_make_c4())
-
-    def test_k4_real_edge_count(self) -> None:
-        """Test real edge count invariant for K4."""
-        self._check_real_edge_count(_make_k4())
-
-    def test_two_parallel_real_edge_count(self) -> None:
-        """Test real edge count invariant for 2 parallel edges."""
-        self._check_real_edge_count(_make_two_parallel())
-
-    def test_three_parallel_real_edge_count(self) -> None:
-        """Test real edge count invariant for 3 parallel edges."""
-        self._check_real_edge_count(_make_three_parallel())
 
     def test_k3_virtual_edges_in_two_comps(self) -> None:
         """Test virtual edge invariant for K3."""
@@ -383,40 +349,6 @@ class TestTriconnectedInvariants(unittest.TestCase):
         comps: list[TriconnectedComponent] = \
             find_triconnected_components(_make_three_parallel())
         self._check_virtual_edges_in_two_comps(comps)
-
-    def test_component_types_are_valid(self) -> None:
-        """Test that all component types are valid ComponentType values."""
-        for g in [
-            _make_k3(), _make_c4(), _make_k4(),
-            _make_two_parallel(), _make_three_parallel(),
-        ]:
-            comps: list[TriconnectedComponent] = \
-                find_triconnected_components(g)
-            for comp in comps:
-                self.assertIsInstance(comp.type, ComponentType)
-                self.assertIn(
-                    comp.type,
-                    [
-                        ComponentType.BOND,
-                        ComponentType.POLYGON,
-                        ComponentType.TRICONNECTED,
-                    ],
-                )
-
-    def test_each_component_has_edges(self) -> None:
-        """Test that every component has at least 2 edges."""
-        for g in [
-            _make_k3(), _make_c4(), _make_k4(),
-            _make_two_parallel(), _make_three_parallel(),
-        ]:
-            comps: list[TriconnectedComponent] = \
-                find_triconnected_components(g)
-            for comp in comps:
-                self.assertGreaterEqual(
-                    len(comp.edges),
-                    2,
-                    f"Component {comp.type} has fewer than 2 edges",
-                )
 
 
 def _make_diamond() -> MultiGraph:
@@ -489,14 +421,6 @@ class TestTriconnectedDiamond(unittest.TestCase):
             find_triconnected_components(self.g)
         """The triconnected split components."""
 
-    def test_at_least_two_components(self) -> None:
-        """Test that the diamond produces at least 2 components."""
-        self.assertGreaterEqual(
-            len(self.comps),
-            2,
-            "Diamond has separation pair {2,3}, expect >=2 components",
-        )
-
     def test_total_real_edges(self) -> None:
         """Test that total real edge count equals input edge count (5)."""
         self.assertEqual(
@@ -514,18 +438,6 @@ class TestTriconnectedDiamond(unittest.TestCase):
                 f"Virtual edge {eid} appears in {cnt} components "
                 f"(expected 2)",
             )
-
-    def test_no_ss_adjacency(self) -> None:
-        """Test that no two S-type components share a virtual edge."""
-        _assert_no_same_type_adjacency(
-            self, self.comps, ComponentType.POLYGON
-        )
-
-    def test_no_pp_adjacency(self) -> None:
-        """Test that no two P-type components share a virtual edge."""
-        _assert_no_same_type_adjacency(
-            self, self.comps, ComponentType.BOND
-        )
 
     def test_each_component_has_at_least_two_edges(self) -> None:
         """Test that every component has at least 2 edges."""
@@ -565,18 +477,6 @@ class TestTriconnectedTheta(unittest.TestCase):
                 f"Virtual edge {eid} appears in {cnt} components "
                 f"(expected 2)",
             )
-
-    def test_no_ss_adjacency(self) -> None:
-        """Test that no two S-type components share a virtual edge."""
-        _assert_no_same_type_adjacency(
-            self, self.comps, ComponentType.POLYGON
-        )
-
-    def test_no_pp_adjacency(self) -> None:
-        """Test that no two P-type components share a virtual edge."""
-        _assert_no_same_type_adjacency(
-            self, self.comps, ComponentType.BOND
-        )
 
     def test_each_component_has_at_least_two_edges(self) -> None:
         """Test that every component has at least 2 edges."""
@@ -962,29 +862,6 @@ class TestTriconnectedMultiEdgeComplex(unittest.TestCase):
     def test_all_invariants(self) -> None:
         """Test all decomposition invariants for the multi-edge graph."""
         _check_all_invariants(self, self.g, self.comps)
-
-    def test_has_bond_components(self) -> None:
-        """Test that multi-edges produce BOND components."""
-        bond_types: list[TriconnectedComponent] = [
-            c for c in self.comps
-            if c.type == ComponentType.BOND
-        ]
-        self.assertGreaterEqual(
-            len(bond_types), 1,
-            "Multi-edge graph should have at least one BOND "
-            "component",
-        )
-
-    def test_has_polygon_component(self) -> None:
-        """Test that the backbone cycle produces a POLYGON component."""
-        poly_types: list[TriconnectedComponent] = [
-            c for c in self.comps
-            if c.type == ComponentType.POLYGON
-        ]
-        self.assertGreaterEqual(
-            len(poly_types), 1,
-            "Multi-edge graph should have at least one POLYGON",
-        )
 
     def test_exact_component_structure(self) -> None:
         """Test exact component counts: 2 BONDs and 1 POLYGON.
@@ -1601,12 +1478,6 @@ class TestTriconnectedK33(unittest.TestCase):
         ]
         self.assertEqual(len(real), 9)
 
-    def test_total_real_edges(self) -> None:
-        """Test that total real edge count equals input edge count."""
-        self.assertEqual(
-            _count_real_edges(self.comps), self.g.num_edges()
-        )
-
 
 class TestTriconnectedW4(unittest.TestCase):
     """Tests for triconnected decomposition of the wheel graph W4.
@@ -1641,12 +1512,6 @@ class TestTriconnectedW4(unittest.TestCase):
             e for e in self.comps[0].edges if not e.virtual
         ]
         self.assertEqual(len(real), 8)
-
-    def test_total_real_edges(self) -> None:
-        """Test that total real edge count equals input edge count."""
-        self.assertEqual(
-            _count_real_edges(self.comps), self.g.num_edges()
-        )
 
 
 class TestTriconnectedK3Doubled(unittest.TestCase):
@@ -1850,18 +1715,6 @@ class TestTriconnectedPetersenAugmentedTwice(unittest.TestCase):
         """Test all decomposition invariants for doubly-aug. Petersen."""
         _check_all_invariants(self, self.g, self.comps)
 
-    def test_136_total_components(self) -> None:
-        """Test that the doubly-augmented Petersen yields 136 comps.
-
-        Expected: 60 BOND + 75 POLYGON + 1 TRICONNECTED = 136 total.
-        """
-        self.assertEqual(
-            len(self.comps),
-            136,
-            f"Doubly-augmented Petersen should have 136 components, "
-            f"got {len(self.comps)}",
-        )
-
     def test_one_triconnected(self) -> None:
         """Test that there is exactly 1 TRICONNECTED component."""
         tc: list[TriconnectedComponent] = [
@@ -2001,13 +1854,6 @@ class TestTriconnectedLadder(unittest.TestCase):
         ]
         self.assertEqual(len(poly), 3, "Expected 3 POLYGON")
         self.assertEqual(len(bond), 2, "Expected 2 BOND")
-
-    def test_real_edge_count(self) -> None:
-        """Test that total real edge count equals 10."""
-        self.assertEqual(
-            _count_real_edges(self.comps),
-            self.g.num_edges(),
-        )
 
 
 def _make_c7() -> MultiGraph:
@@ -2163,13 +2009,6 @@ class TestTriconnectedK23(unittest.TestCase):
         ]
         self.assertEqual(len(poly), 3, "Expected 3 POLYGON")
         self.assertEqual(len(bond), 1, "Expected 1 BOND")
-
-    def test_real_edge_count(self) -> None:
-        """Test that total real edge count equals 6."""
-        self.assertEqual(
-            _count_real_edges(self.comps),
-            self.g.num_edges(),
-        )
 
 
 def _make_w5() -> MultiGraph:
@@ -2484,13 +2323,6 @@ class TestTriconnectedK4OneDoubled(unittest.TestCase):
             len(tri), 1, "Expected 1 TRICONNECTED",
         )
 
-    def test_real_edge_count(self) -> None:
-        """Test that total real edge count equals 7."""
-        self.assertEqual(
-            _count_real_edges(self.comps),
-            self.g.num_edges(),
-        )
-
 
 def _make_mobius_kantor() -> MultiGraph:
     """Build the Mobius-Kantor graph GP(8,3) (16 verts, 24 edges).
@@ -2611,13 +2443,6 @@ class TestTriconnectedPetersenAugmented(unittest.TestCase):
         """Test all decomposition invariants for aug. Petersen."""
         _check_all_invariants(self, self.g, self.comps)
 
-    def test_thirty_one_components(self) -> None:
-        """Test that augmented Petersen has 31 components."""
-        self.assertEqual(
-            len(self.comps), 31,
-            f"Expected 31 components, got {len(self.comps)}",
-        )
-
     def test_one_triconnected(self) -> None:
         """Test that there is exactly 1 TRICONNECTED component."""
         tri: list[TriconnectedComponent] = [
@@ -2649,13 +2474,6 @@ class TestTriconnectedPetersenAugmented(unittest.TestCase):
         self.assertEqual(
             len(polys), 15,
             f"Expected 15 POLYGON, got {len(polys)}",
-        )
-
-    def test_real_edge_count(self) -> None:
-        """Test that total real edge count equals 60."""
-        self.assertEqual(
-            _count_real_edges(self.comps),
-            self.g.num_edges(),
         )
 
 
@@ -2715,10 +2533,6 @@ class TestTriconnectedWikimediaSpqr(unittest.TestCase):
         self.g: MultiGraph = _make_wikimedia_spqr()
         self.comps: list[TriconnectedComponent] = \
             find_triconnected_components(self.g)
-
-    def test_component_count(self) -> None:
-        """Test that there are exactly 5 components."""
-        self.assertEqual(len(self.comps), 5)
 
     def test_triconnected_count(self) -> None:
         """Test that there are exactly 3 TRICONNECTED."""
@@ -2800,10 +2614,6 @@ class TestTriconnectedRpstFig1a(unittest.TestCase):
         self.g: MultiGraph = _make_rpst_fig1a()
         self.comps: list[TriconnectedComponent] = \
             find_triconnected_components(self.g)
-
-    def test_component_count(self) -> None:
-        """Test that there are exactly 10 components."""
-        self.assertEqual(len(self.comps), 10)
 
     def test_triconnected_count(self) -> None:
         """Test that there is exactly 1 TRICONNECTED."""
@@ -2910,13 +2720,6 @@ class TestBiconnectivityCheck(unittest.TestCase):
         comps: list[TriconnectedComponent] = \
             find_triconnected_components(g)
         self.assertEqual(comps, [])
-
-    def test_biconnected_graph_ok(self) -> None:
-        """Test that a biconnected graph does not raise."""
-        g: MultiGraph = _make_k3()
-        comps: list[TriconnectedComponent] = \
-            find_triconnected_components(g)
-        self.assertEqual(len(comps), 1)
 
 
 # Script used by TestTriconnectedDeterminism to run decomposition

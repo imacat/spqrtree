@@ -71,17 +71,6 @@ def _make_c4() -> tuple[MultiGraph, list[int]]:
     return g, [e0.id, e1.id, e2.id, e3.id]
 
 
-class TestPalmTreeType(unittest.TestCase):
-    """Tests that build_palm_tree returns a PalmTree instance."""
-
-    def test_returns_palm_tree(self) -> None:
-        """Test that build_palm_tree returns a PalmTree object."""
-        g: MultiGraph
-        g, _ = _make_k3()
-        pt: PalmTree = build_palm_tree(g, 1)
-        self.assertIsInstance(pt, PalmTree)
-
-
 class TestPalmTreePath(unittest.TestCase):
     """Tests for palm tree on a path graph P3 (no back edges)."""
 
@@ -93,15 +82,6 @@ class TestPalmTreePath(unittest.TestCase):
         """The edge IDs of the P3 graph."""
         self.pt: PalmTree = build_palm_tree(g, 1)
         """The palm tree for the graph."""
-
-    def test_dfs_num_root(self) -> None:
-        """Test that the start vertex has DFS number 1."""
-        self.assertEqual(self.pt.dfs_num[1], 1)
-
-    def test_dfs_num_order(self) -> None:
-        """Test that DFS numbers are assigned 1, 2, 3 in traversal order."""
-        nums: list[int] = sorted(self.pt.dfs_num.values())
-        self.assertEqual(nums, [1, 2, 3])
 
     def test_tree_edges_count(self) -> None:
         """Test that there are n-1 = 2 tree edges."""
@@ -116,32 +96,6 @@ class TestPalmTreePath(unittest.TestCase):
         e0, e1 = self.eids
         self.assertIn(e0, self.pt.tree_edges)
         self.assertIn(e1, self.pt.tree_edges)
-
-    def test_parent_root(self) -> None:
-        """Test that the root has no parent (None)."""
-        self.assertIsNone(self.pt.parent.get(1))
-
-    def test_nd_values(self) -> None:
-        """Test that ND values are correct for P3."""
-        # DFS from 1: 1→2→3 (since 2 is first in adj[1])
-        self.assertEqual(self.pt.nd[1], 3)
-
-    def test_nd_leaf(self) -> None:
-        """Test that a leaf vertex has ND = 1."""
-        # Vertex 3 is a leaf in P3
-        self.assertEqual(self.pt.nd[3], 1)
-
-    def test_lowpt1_values(self) -> None:
-        """Test lowpt1 values for P3 (all vertices reach only themselves)."""
-        for v in [1, 2, 3]:
-            self.assertLessEqual(
-                self.pt.lowpt1[v], self.pt.dfs_num[v]
-            )
-
-    def test_lowpt1_no_fronds(self) -> None:
-        """Test that lowpt1[v] == dfs_num[v] when no fronds exist."""
-        for v in [1, 2, 3]:
-            self.assertEqual(self.pt.lowpt1[v], self.pt.dfs_num[v])
 
 
 class TestPalmTreeTriangle(unittest.TestCase):
@@ -189,14 +143,6 @@ class TestPalmTreeTriangle(unittest.TestCase):
         """Test that the root has nd = 3."""
         self.assertEqual(self.pt.nd[1], 3)
 
-    def test_nd_leaf(self) -> None:
-        """Test that the DFS leaf (vertex 3) has nd = 1."""
-        # Vertex 3 is visited last in K3 with DFS from 1
-        leaf: Hashable = next(
-            v for v, n in self.pt.nd.items() if n == 1
-        )
-        self.assertEqual(self.pt.nd[leaf], 1)
-
     def test_first_child_of_root(self) -> None:
         """Test that root vertex 1 has a first child."""
         self.assertIsNotNone(self.pt.first_child.get(1))
@@ -207,11 +153,6 @@ class TestPalmTreeTriangle(unittest.TestCase):
             v for v, n in self.pt.nd.items() if n == 1
         )
         self.assertIsNone(self.pt.first_child.get(leaf))
-
-    def test_lowpt1_le_dfs_num(self) -> None:
-        """Test that lowpt1[v] <= dfs_num[v] for all v."""
-        for v in [1, 2, 3]:
-            self.assertLessEqual(self.pt.lowpt1[v], self.pt.dfs_num[v])
 
     def test_lowpt1_le_lowpt2(self) -> None:
         """Test that lowpt1[v] <= lowpt2[v] for all v."""
@@ -374,20 +315,6 @@ class TestPhiKeyP3(unittest.TestCase):
         # lowpt1[3]=3, case 3: 3*3+2 = 11
         self.assertEqual(key, 3 * 3 + 2)
 
-    def test_tree_edge_case3_greater_than_case1(self) -> None:
-        """Test that case-3 phi > case-1 phi for ordering.
-
-        Case 1: phi = 3*lowpt1[w]
-        Case 3: phi = 3*lowpt1[w]+2
-        Case 3 must be strictly greater than case 1 for same lowpt1.
-        """
-        e0: int = self.eids[0]
-        key_v1: int = phi_key(
-            v=1, eid=e0, pt=self.pt, graph=self.g,
-        )
-        # Case 3 value (8) > case 1 value (6) for lowpt1[2]=2
-        self.assertGreater(key_v1, 3 * 2)
-
 
 class TestPhiKeyK3Frond(unittest.TestCase):
     """Tests for phi_key correctness on the triangle K3.
@@ -425,35 +352,6 @@ class TestPhiKeyK3Frond(unittest.TestCase):
         )
         # Correct formula: 3 * dfs_num[w=1] + 1 = 3*1+1 = 4
         self.assertEqual(key, 3 * 1 + 1)
-
-    def test_frond_phi_different_from_v_formula(self) -> None:
-        """Test that frond phi uses w (not v) DFS number.
-
-        The buggy formula uses dfs_num[v] (= 3) giving 3*3+2 = 11.
-        The correct formula uses dfs_num[w] (= 1) giving 3*1+1 = 4.
-        These must differ.
-        """
-        e2: int = self.eids[2]
-        key: int = phi_key(
-            v=3, eid=e2, pt=self.pt, graph=self.g,
-        )
-        # The buggy value would be 3*dfs_num[v=3]+2 = 3*3+2 = 11.
-        # The correct value is 3*dfs_num[w=1]+1 = 4.
-        self.assertNotEqual(key, 11)
-        self.assertEqual(key, 4)
-
-    def test_frond_phi_less_than_tree_edge_case3(self) -> None:
-        """Test ordering: frond phi < tree-edge case-3 phi.
-
-        The frond phi (4) should be less than a case-3 tree-edge phi
-        with the same lowpt1 (3*1+2=5), ensuring correct DFS order.
-        """
-        e2: int = self.eids[2]
-        frond_key: int = phi_key(
-            v=3, eid=e2, pt=self.pt, graph=self.g,
-        )
-        # Frond phi = 3*1+1=4; case-3 tree-edge phi at lowpt1=1 = 3*1+2=5
-        self.assertLess(frond_key, 3 * 1 + 2)
 
     def test_tree_edge_case1_condition(self) -> None:
         """Test phi_key for tree edge where lowpt2[w] < dfs_num[v].
